@@ -1,7 +1,62 @@
-// SkillForge API client
-// Uses fetch to the skillforge-api backend, falls back to hardcoded mock data
+// SkillForge API client — talks to the real Railway backend
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 
+  (process.env.NODE_ENV === 'production' 
+    ? 'https://skillforge-production-9dba.up.railway.app'
+    : 'http://localhost:8000');
+
+// — Types matching the real SkillForge API responses —
+
+interface ApiSkillPermissionTool {
+  name: string;
+  description: string;
+  risk: 'low' | 'medium' | 'high' | 'critical';
+  data_access?: unknown[];
+}
+
+interface ApiSkillManifest {
+  name: string;
+  version: string;
+  description: string;
+  author: string;
+  license: string;
+  mcp_server?: string;
+  permissions?: { tools?: ApiSkillPermissionTool[] };
+  security?: {
+    prompt_injection_surface?: string;
+    secrets_required?: string[];
+    network_egress?: string[];
+  };
+  tags?: string[];
+  homepage?: string | null;
+  repository?: string | null;
+  icon?: string | null;
+}
+
+interface ApiSkill {
+  id: number;
+  name: string;
+  version: string;
+  description: string;
+  author: string;
+  tags: string[];
+  manifest: ApiSkillManifest;
+  body?: string;
+  download_count: number;
+  validation_score: number | null;
+  security_score: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+interface ApiSkillsListResponse {
+  items: ApiSkill[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+// — Cleaned-up types for the frontend —
 
 export interface SkillPermission {
   tool: string;
@@ -39,81 +94,37 @@ export interface SkillResponse {
   skill: Skill;
 }
 
-// Hardcoded fallback skills
-const MOCK_SKILLS: Skill[] = [
-  {
-    name: 'github-code-review',
-    version: '2.1.0',
-    author: 'skillforge-core',
-    description:
-      'Automated code review skill that analyzes pull requests for code quality, security vulnerabilities, and best practices. Integrates with GitHub Actions for seamless CI/CD pipelines. Supports configurable rulesets and AI-powered suggestions.',
-    tags: ['github', 'code-review', 'security', 'ci-cd', 'automation'],
-    security_score: 92,
-    validation_score: 88,
-    downloads: 15420,
-    permissions: [
-      { tool: 'github.pull_requests.read', risk: 'low', description: 'Read PR data' },
-      { tool: 'github.pull_requests.comment', risk: 'medium', description: 'Post review comments' },
-      { tool: 'github.repos.read', risk: 'low', description: 'Read repository metadata' },
-      { tool: 'code_analysis.run', risk: 'low', description: 'Run linting and SAST' },
-    ],
-    install_command: 'skillforge install github-code-review',
-    repository: 'https://github.com/munnmajithia/skillforge-skills',
-    created_at: '2025-11-15T09:00:00Z',
-    updated_at: '2026-05-10T14:30:00Z',
-    category: 'CI/CD',
-    license: 'MIT',
-    homepage: 'https://skillforge.dev/skills/github-code-review',
-  },
-  {
-    name: 'linear-issue-manager',
-    version: '1.4.0',
-    author: 'skillforge-community',
-    description:
-      'Intelligent issue management for Linear. Auto-triage, sprint planning assistance, dependency tracking, and cross-team coordination. Features natural language issue creation and smart label suggestions based on issue content.',
-    tags: ['linear', 'project-management', 'issues', 'agile', 'automation'],
-    security_score: 85,
-    validation_score: 91,
-    downloads: 8920,
-    permissions: [
-      { tool: 'linear.issues.read', risk: 'low', description: 'Read Linear issues' },
-      { tool: 'linear.issues.write', risk: 'medium', description: 'Create and update issues' },
-      { tool: 'linear.teams.read', risk: 'low', description: 'Read team data' },
-      { tool: 'linear.sprints.read', risk: 'low', description: 'Read sprint data' },
-    ],
-    install_command: 'skillforge install linear-issue-manager',
-    repository: 'https://github.com/skillforge-community/linear-issue-manager',
-    created_at: '2025-12-20T10:00:00Z',
-    updated_at: '2026-04-28T08:15:00Z',
-    category: 'Project Management',
-    license: 'Apache-2.0',
-    homepage: 'https://skillforge.dev/skills/linear-issue-manager',
-  },
-  {
-    name: 'postgres-schema-explorer',
-    version: '3.0.1',
-    author: 'skillforge-data',
-    description:
-      'Deep database introspection skill for PostgreSQL. Visualizes schema relationships, generates migration plans, detects performance bottlenecks, and suggests index optimizations. Supports multi-tenant database architectures and connection pooling configurations.',
-    tags: ['postgres', 'database', 'schema', 'optimization', 'data'],
-    security_score: 78,
-    validation_score: 94,
-    downloads: 6230,
-    permissions: [
-      { tool: 'database.schema.read', risk: 'medium', description: 'Read schema metadata' },
-      { tool: 'database.query.run', risk: 'high', description: 'Execute EXPLAIN queries' },
-      { tool: 'database.metrics.read', risk: 'low', description: 'Read performance metrics' },
-      { tool: 'filesystem.read', risk: 'low', description: 'Read migration files' },
-    ],
-    install_command: 'skillforge install postgres-schema-explorer',
-    repository: 'https://github.com/skillforge-data/postgres-schema-explorer',
-    created_at: '2026-01-10T16:00:00Z',
-    updated_at: '2026-05-18T11:45:00Z',
-    category: 'Databases',
-    license: 'MIT',
-    homepage: 'https://skillforge.dev/skills/postgres-schema-explorer',
-  },
-];
+// — Transform helpers —
+
+function mapApiSkill(api: ApiSkill): Skill {
+  const perms: SkillPermission[] =
+    api.manifest?.permissions?.tools?.map((t) => ({
+      tool: t.name,
+      risk: t.risk,
+      description: t.description,
+    })) ?? [];
+
+  return {
+    name: api.name,
+    version: api.version,
+    author: api.author,
+    description: api.description,
+    tags: api.tags ?? [],
+    security_score: Math.round((api.security_score ?? 0) * 100),
+    validation_score: Math.round((api.validation_score ?? 0) * 100),
+    downloads: api.download_count ?? 0,
+    permissions: perms,
+    install_command: `skillforge install ${api.name}`,
+    repository: api.manifest?.repository ?? undefined,
+    created_at: api.created_at,
+    updated_at: api.updated_at,
+    category: api.tags?.[0] ?? undefined,
+    license: api.manifest?.license,
+    homepage: api.manifest?.homepage ?? undefined,
+  };
+}
+
+// — API functions —
 
 export async function fetchSkills(params?: {
   search?: string;
@@ -122,66 +133,63 @@ export async function fetchSkills(params?: {
   limit?: number;
 }): Promise<SkillsResponse> {
   try {
-    const searchParams = new URLSearchParams();
-    if (params?.search) searchParams.set('search', params.search);
-    if (params?.tags?.length) searchParams.set('tags', params.tags.join(','));
-    if (params?.page) searchParams.set('page', String(params.page));
-    if (params?.limit) searchParams.set('limit', String(params.limit));
+    let url: string;
+    if (params?.search) {
+      url = `${API_BASE}/search?q=${encodeURIComponent(params.search)}&page=${params.page ?? 1}&page_size=${params.limit ?? 20}`;
+    } else {
+      url = `${API_BASE}/skills?page=${params.page ?? 1}&page_size=${params.limit ?? 20}`;
+      if (params?.tags?.length) {
+        url += `&tag=${encodeURIComponent(params.tags[0])}`;
+      }
+    }
 
-    const url = `${API_BASE}/api/v1/skills?${searchParams.toString()}`;
     const res = await fetch(url, { next: { revalidate: 60 } });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res.json();
-  } catch {
-    // Fallback to mock data with filtering
-    let filtered = [...MOCK_SKILLS];
-    if (params?.search) {
-      const q = params.search.toLowerCase();
-      filtered = filtered.filter(
-        (s) =>
-          s.name.toLowerCase().includes(q) ||
-          s.description.toLowerCase().includes(q) ||
-          s.tags.some((t) => t.toLowerCase().includes(q))
-      );
-    }
-    if (params?.tags?.length) {
-      filtered = filtered.filter((s) =>
-        params.tags!.some((t) => s.tags.includes(t))
-      );
-    }
+    const data: ApiSkillsListResponse = await res.json();
+
     return {
-      skills: filtered,
-      total: filtered.length,
-      page: params?.page || 1,
-      limit: params?.limit || 20,
+      skills: data.items.map(mapApiSkill),
+      total: data.total,
+      page: data.page,
+      limit: data.page_size,
     };
+  } catch (err) {
+    console.warn('SkillForge API unreachable, using empty result:', err);
+    return { skills: [], total: 0, page: 1, limit: 20 };
   }
 }
 
 export async function fetchSkill(name: string): Promise<SkillResponse | null> {
   try {
-    const url = `${API_BASE}/api/v1/skills/${encodeURIComponent(name)}`;
+    // Search the API by name (API uses numeric IDs, not name-based routes)
+    const url = `${API_BASE}/search?q=${encodeURIComponent(name)}&page_size=100`;
     const res = await fetch(url, { next: { revalidate: 60 } });
-    if (res.status === 404) return null;
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res.json();
+    const data: ApiSkillsListResponse = await res.json();
+
+    const match = data.items.find(
+      (s) => s.name.toLowerCase() === name.toLowerCase()
+    );
+    if (!match) return null;
+
+    return { skill: mapApiSkill(match) };
   } catch {
-    const skill = MOCK_SKILLS.find((s) => s.name === name);
-    if (!skill) return null;
-    return { skill };
+    return null;
   }
 }
 
 export async function fetchAllTags(): Promise<string[]> {
   try {
-    const url = `${API_BASE}/api/v1/tags`;
+    // Fetch all skills and extract unique tags
+    const url = `${API_BASE}/skills?page_size=100`;
     const res = await fetch(url, { next: { revalidate: 300 } });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res.json();
-  } catch {
-    // Extract unique tags from mock skills
+    const data: ApiSkillsListResponse = await res.json();
+
     const tagSet = new Set<string>();
-    MOCK_SKILLS.forEach((s) => s.tags.forEach((t) => tagSet.add(t)));
+    data.items.forEach((s) => s.tags?.forEach((t) => tagSet.add(t)));
     return Array.from(tagSet).sort();
+  } catch {
+    return [];
   }
 }
