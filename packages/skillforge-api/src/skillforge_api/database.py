@@ -3,7 +3,14 @@
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
-DATABASE_URL = "sqlite+aiosqlite:///skillforge.db"
+import os
+
+# Use DATABASE_URL env var if set (e.g., Railway Postgres), fall back to local SQLite
+# On Railway/cloud: persist data with Postgres or keep SQLite in /data which survives restarts
+DATABASE_URL = os.environ.get(
+    "DATABASE_URL",
+    "sqlite+aiosqlite:////data/skillforge.db" if os.path.exists("/data") else "sqlite+aiosqlite:///skillforge.db"
+)
 
 engine = create_async_engine(DATABASE_URL, echo=False)
 async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
