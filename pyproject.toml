@@ -1,0 +1,16 @@
+[project]
+name = "skillforge"
+version = "0.1.0"
+description = "Open-source MCP skill pack ecosystem for AI coding agents"
+license = "Apache-2.0"
+readme = "README.md"
+requires-python = ">=3.11"
+
+[tool.uv.workspace]
+members = ["packages/*"]
+
+[tool.uv.sources]
+skillforge-core = { workspace = true }
+skillforge-api = { workspace = true }
+skillforge-cli = { workspace = true }
+skillforge-scanner = { workspace = true }

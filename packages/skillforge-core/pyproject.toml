@@ -1,0 +1,12 @@
+[project]
+name = "skillforge-core"
+version = "0.1.0"
+description = "Shared models, schemas, and parsers for SkillForge"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.0",
+    "pyyaml>=6.0",
+    "jsonschema>=4.20",
+    "pytest>=9.0.3",
+]
+license = "Apache-2.0"
