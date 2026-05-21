@@ -133,13 +133,15 @@ export async function fetchSkills(params?: {
   limit?: number;
 }): Promise<SkillsResponse> {
   try {
+    const page = params?.page ?? 1;
+    const pageSize = params?.limit ?? 20;
     let url: string;
     if (params?.search) {
-      url = `${API_BASE}/search?q=${encodeURIComponent(params.search)}&page=${params.page ?? 1}&page_size=${params.limit ?? 20}`;
+      url = `${API_BASE}/search?q=${encodeURIComponent(params.search)}&page=${page}&page_size=${pageSize}`;
     } else {
-      url = `${API_BASE}/skills?page=${params.page ?? 1}&page_size=${params.limit ?? 20}`;
+      url = `${API_BASE}/skills?page=${page}&page_size=${pageSize}`;
       if (params?.tags?.length) {
-        url += `&tag=${encodeURIComponent(params.tags[0])}`;
+        url += `&tag=${encodeURIComponent(params.tags[0] ?? '')}`;
       }
     }
 
