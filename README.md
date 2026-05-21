@@ -3,6 +3,8 @@
 **MCP Skill Pack Ecosystem for AI Coding Agents** — the `npm` for agent skills.
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![Deployed](https://img.shields.io/badge/Live-skillforge.vercel.app-000?logo=vercel)](https://skillforge-rho-ten.vercel.app)
+[![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python)](https://python.org)
 [![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi)](https://fastapi.tiangolo.com)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org)
