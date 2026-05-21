@@ -22,9 +22,7 @@ GITHUB_API_URL = os.getenv("GITHUB_API_URL", "https://api.github.com")
 
 server = FastMCP(
     name="GitHub Code Review",
-    title="GitHub PR Code Review Server",
-    description="AI-powered structured code review for GitHub pull requests",
-    version="1.0.0",
+    instructions="AI-powered structured code review for GitHub pull requests",
 )
 
 

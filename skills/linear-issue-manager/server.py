@@ -21,9 +21,7 @@ LINEAR_API_KEY = os.getenv("LINEAR_API_KEY", "")
 
 server = FastMCP(
     name="Linear Issue Manager",
-    title="Linear Issue Management Server",
-    description="Manage Linear issues and sprints through natural language",
-    version="1.0.0",
+    instructions="Manage Linear issues and sprints through natural language",
 )
 
 

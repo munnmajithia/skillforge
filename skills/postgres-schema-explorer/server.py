@@ -21,9 +21,7 @@ DATABASE_URL = os.getenv("DATABASE_URL", "")
 
 server = FastMCP(
     name="PostgreSQL Schema Explorer",
-    title="PostgreSQL Schema Explorer Server",
-    description="Explore and understand PostgreSQL database schemas",
-    version="1.0.0",
+    instructions="Explore and understand PostgreSQL database schemas",
 )
 
 
